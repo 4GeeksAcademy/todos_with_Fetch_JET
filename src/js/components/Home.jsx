@@ -9,11 +9,12 @@ const Home = () => {
   useEffect(() => {
     createUser(userName);
     console.log(userName);
+    getTodos();
   }, []);
 
   //adding a new user to the list
-  function createUser(username) {
-    fetch("https://playground.4geeks.com/todo/users/" + username, {
+  function createUser() {
+    fetch("https://playground.4geeks.com/todo/users/" + userName, {
       method: "POST",
       body: JSON.stringify([]),
       headers: {
@@ -24,22 +25,24 @@ const Home = () => {
         return response.json();
       })
       .then((data) => {
+        getTodos();
         console.log(data);
       })
       .catch((error) => {
+        getTodos();
         console.log(error);
       });
   }
 
   //GETting the list from the server and display on the webpage
-  function getTodos(username) {
-    fetch("https://playground.4geeks.com/todo/todos/" + username)
+  function getTodos() {
+    fetch("https://playground.4geeks.com/todo/users/" + userName)
       .then((response) => {
         if (!response.ok) throw new Error("Failed to fetch todos");
         return response.json();
       })
       .then((data) => {
-        setTodos(data); // Update state so the list displays
+        setTodos(data.todos); // Update state so the list displays (only incidence is good)
         console.log("Successful todos fetch:", data);
       })
       .catch((error) => {
@@ -51,7 +54,7 @@ const Home = () => {
   function addTodo() {
     const trimmed = text.trim();
     if (!trimmed) return;
-    fetch("https://playground.4geeks.com/todo/todos/", {
+    fetch("https://playground.4geeks.com/todo/todos/" + userName, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -59,17 +62,19 @@ const Home = () => {
       body: JSON.stringify({
         label: trimmed,
         is_done: false,
-        user_id: userName,
       }),
     })
       .then((response) => {
         if (!response.ok) throw new Error("Failed to add the todos");
         return response.json();
       })
-      .then((newTodo) => {
-        setTodos((prev) => [...prev, newTodo]); // Adding to the current list
+      .then(() => {
+        getTodos();
         setText(""); //to clear
       })
+      // .then((newTodo) => {
+      //   setTodos((prev) => [...prev, newTodo]); // Adding to the current list
+      // })
       .catch((error) => {
         console.error("Error adding todo:", error);
       });
@@ -82,7 +87,7 @@ const Home = () => {
     })
       .then((response) => {
         if (!response.ok) throw new Error("Failed to delete the todo");
-        setTodos((prev) => prev.filter((todo) => todo.id !== id));
+        getTodos();
       })
       .catch((error) => {
         console.error("Error deleting task:", error);
@@ -91,7 +96,7 @@ const Home = () => {
 
   return (
     <div className="text-center mt-10">
-      <h1 className="text-center mb-4">My To Do's</h1>
+      <h1 className="text-center mb-4">{userName} To Do's with Fetch</h1>
 
       {/* Create User Section */}
       <div className="row justify-content-center mb-3">
