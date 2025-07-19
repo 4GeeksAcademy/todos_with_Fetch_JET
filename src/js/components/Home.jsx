@@ -1,195 +1,182 @@
 import React, { useState, useEffect } from "react";
 
+//create your first component
 const Home = () => {
-  const [userNameInput, setUserNameInput] = useState("");
-  const [userName, setUserName] = useState("");
+  let [userName, setUserName] = useState("jet007");
   const [todos, setTodos] = useState([]);
-  const [newTask, setNewTask] = useState("");
+  const [text, setText] = useState("");
 
-  // Create a new user
+  useEffect(() => {
+    createUser(userName);
+    console.log(userName);
+  }, []);
+
+  //adding a new user to the list
   function createUser(username) {
-    const trimmedName = userNameInput.trim();
-    if (trimmedName === "") return;
-
     fetch("https://playground.4geeks.com/todo/users/" + username, {
       method: "POST",
-      body: JSON.stringify({ username: trimmedName }),
-      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify([]),
+      headers: {
+        "Content-Type": "application/json",
+      },
     })
-      .then((res) => {
-        if (!res.ok && res.status !== 400)
-          throw new Error("User creation failed");
-        return res.json();
+      .then((response) => {
+        return response.json();
       })
-      .then(() => {
-        setUserName(trimmedName);
-        getUsersTodoList(trimmedName);
-      })
-      .catch((err) => console.log("User creation error:", err));
-  }
-
-  // Get todos for user
-  function getUsersTodoList(username) {
-    fetch(`https://playground.4geeks.com/todo/users/${username}`)
-      .then((res) => res.json())
       .then((data) => {
-        setTodos(data.todos || []);
+        console.log(data);
       })
-      .catch((err) => console.log("Fetching todos error:", err));
+      .catch((error) => {
+        console.log(error);
+      });
   }
 
-  // Add a new task for the user
-  function addNewTask() {
-    if (newTask.trim() === "" || userName === "") return;
+  //GETting the list from the server and display on the webpage
+  function getTodos(username) {
+    fetch("https://playground.4geeks.com/todo/todos/" + username)
+      .then((response) => {
+        if (!response.ok) throw new Error("Failed to fetch todos");
+        return response.json();
+      })
+      .then((data) => {
+        setTodos(data); // Update state so the list displays
+        console.log("Successful todos fetch:", data);
+      })
+      .catch((error) => {
+        console.error("Error fetching todos:", error);
+      });
+  }
 
-    const task = {
-      label: newTask.trim(),
-      done: false,
-    };
-
-    fetch(`https://playground.4geeks.com/todo/todos/${userName}`, {
+  //Adding a new task that is displayed on the webpage (POST)
+  function addTodo() {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    fetch("https://playground.4geeks.com/todo/todos/", {
       method: "POST",
-      body: JSON.stringify(task),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        label: trimmed,
+        is_done: false,
+        user_id: userName,
+      }),
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to add task");
-        return res.json();
+      .then((response) => {
+        if (!response.ok) throw new Error("Failed to add the todos");
+        return response.json();
       })
-      .then(() => {
-        setNewTask("");
-        getUsersTodoList(userName);
+      .then((newTodo) => {
+        setTodos((prev) => [...prev, newTodo]); // Adding to the current list
+        setText(""); //to clear
       })
-      .catch((err) => console.log("Add task error:", err));
+      .catch((error) => {
+        console.error("Error adding todo:", error);
+      });
   }
 
-  // Delete a single task
-  function deleteTodo(todoId) {
-    fetch(`https://playground.4geeks.com/todo/todos/${todoId}`, {
+  //deleting a task that is displayed on the webpage (DELETE)
+  function deleteTodo(id) {
+    fetch(`https://playground.4geeks.com/todo/todos/${id}`, {
       method: "DELETE",
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to delete task");
-        return res.json();
+      .then((response) => {
+        if (!response.ok) throw new Error("Failed to delete the todo");
+        setTodos((prev) => prev.filter((todo) => todo.id !== id));
       })
-      .then(() => getUsersTodoList(userName))
-      .catch((err) => console.log("Delete error:", err));
-  }
-
-  // Clear all tasks (delete one by one)
-  function clearAllTasks() {
-    const deletions = todos.map((todo) =>
-      fetch(`https://playground.4geeks.com/todo/todos/${todo.id}`, {
-        method: "DELETE",
-      })
-    );
-
-    Promise.all(deletions)
-      .then(() => getUsersTodoList(userName))
-      .catch((err) => console.log("Clear all error:", err));
-  }
-
-  // Optional: toggle complete (PUT update task)
-  function toggleDone(todo) {
-    const updated = { ...todo, done: !todo.done };
-
-    fetch(`https://playground.4geeks.com/todo/todos/${todo.id}`, {
-      method: "PUT",
-      body: JSON.stringify(updated),
-      headers: { "Content-Type": "application/json" },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to update task");
-        return res.json();
-      })
-      .then(() => getUsersTodoList(userName))
-      .catch((err) => console.log("Update task error:", err));
-  }
-
-  function handleTaskKeyPress(e) {
-    if (e.key === "Enter") {
-      addNewTask();
-    }
-  }
-
-  function handleUserKeyPress(e) {
-    if (e.key === "Enter") {
-      createUser();
-    }
+      .catch((error) => {
+        console.error("Error deleting task:", error);
+      });
   }
 
   return (
-    <div className="text-center container mt-5">
-      <h1>To-do List with Fetch</h1>
+    <div className="text-center mt-10">
+      <h1 className="text-center mb-4">My To Do's</h1>
 
-      {/* Username input */}
-      <div className="d-flex justify-content-center mb-4">
-        <input
-          type="text"
-          className="form-control w-50 me-2"
-          placeholder="Enter your name to create a new user"
-          value={userNameInput}
-          onChange={(e) => setUserNameInput(e.target.value)}
-          onKeyDown={handleUserKeyPress}
-        />
-        <button className="btn btn-success" onClick={createUser}>
-          Create User
-        </button>
-      </div>
-
-      {/* Show user if active */}
-      {userName && <h5 className="mb-3">User: {userName}</h5>}
-
-      {/* Task input and list */}
-      {userName && (
-        <>
-          <div className="d-flex justify-content-center mb-3">
+      {/* Create User Section */}
+      <div className="row justify-content-center mb-3">
+        <div className="col-md-6">
+          <div className="input-group">
             <input
               type="text"
-              value={newTask}
-              onChange={(e) => setNewTask(e.target.value)}
-              onKeyDown={handleTaskKeyPress}
-              className="form-control w-50 me-2"
-              placeholder="Add a task and hit Enter or click Add"
+              className="form-control"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              placeholder="Enter username"
             />
-            <button className="btn btn-primary me-2" onClick={addNewTask}>
-              Add to list
-            </button>
-            <button className="btn btn-danger" onClick={clearAllTasks}>
-              Clear All
+            <button
+              onClick={() => createUser(userName)}
+              className="btn btn-secondary"
+            >
+              Create User
             </button>
           </div>
+        </div>
+      </div>
 
-          <ul className="list-group">
-            {todos.length === 0 ? (
-              <li className="list-group-item">No tasks yet</li>
-            ) : (
-              todos.map((todo, i) => (
-                <li
-                  key={todo.id || i}
-                  className="list-group-item d-flex justify-content-between align-items-center"
-                >
+      {/* Add Todo Section */}
+      <div className="row justify-content-center mb-4">
+        <div className="col-md-8">
+          <div className="input-group">
+            <input
+              type="text"
+              className="form-control me-3"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addTodo()}
+              placeholder="Add your To Do and hit Enter or click the button"
+            />
+            <button onClick={addTodo} className="btn btn-primary">
+              Add to list
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Column Headers */}
+      <div className="row justify-content-center mb-2">
+        <div className="col-md-8">
+          <div className="row fw-bold">
+            <div className="col-4 text-center">Completed Task</div>
+            <div className="col-4 text-start">My To Do</div>
+            <div className="col-4 text-center">Remove</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Todo List */}
+      <div className="row justify-content-center">
+        <div className="col-md-8">
+          <ul style={{ listStylePosition: "inside" }}>
+            {todos.map((todo) => (
+              <li key={todo.id} className="row align-items-center mb-2">
+                <div className="col-4 text-center">
+                  <input type="checkbox" checked={todo.done} readOnly />
+                </div>
+                <div className="col-4 text-start">
                   <span
                     style={{
                       textDecoration: todo.done ? "line-through" : "none",
-                      cursor: "pointer",
                     }}
-                    onClick={() => toggleDone(todo)}
                   >
                     {todo.label}
                   </span>
+                </div>
+                <div className="col-4 text-center">
                   <button
-                    className="btn btn-sm btn-danger"
                     onClick={() => deleteTodo(todo.id)}
+                    className="btn btn-sm btn-danger"
                   >
                     ×
                   </button>
-                </li>
-              ))
-            )}
+                </div>
+              </li>
+            ))}
           </ul>
-        </>
-      )}
+        </div>
+      </div>
+
+      <p className="text-center mt-3">{todos.length} Items To Do</p>
     </div>
   );
 };
