@@ -94,6 +94,30 @@ const Home = () => {
       });
   }
 
+  // //deleting ALL tasks (DELETE ALL)
+  function deleteAllTodos() {
+    const confirmDelete = window.confirm("Are you sure you want to delete all tasks?");
+    if (!confirmDelete) return;
+    const deletePromises = todos.map((todo) =>
+      fetch(`https://playground.4geeks.com/todo/todos/${todo.id}`, {
+        method: "DELETE",
+      })
+    );
+  //Here I'm waiting for all tasks to be deleted
+    Promise.all(deletePromises)
+      .then((responses) => {
+        const failed = responses.filter((res) => !res.ok);
+        if (failed.length > 0) {
+          throw new Error("Some todos failed to delete");
+        }
+        console.log("All todos deleted");
+        getTodos();
+      })
+      .catch((error) => {
+        console.error("Error deleting all tasks:", error);
+      });
+  }
+
   return (
     <div className="text-center mt-10">
       <h1 className="text-center mb-4">{userName} To Do's with Fetch</h1>
@@ -180,8 +204,12 @@ const Home = () => {
           </ul>
         </div>
       </div>
-
       <p className="text-center mt-3">{todos.length} Items To Do</p>
+      <div className="text-center- mt-3">
+        <button onClick={deleteAllTodos} className="btn btn-danger">
+          Clear All To Do's
+        </button>
+      </div>
     </div>
   );
 };
